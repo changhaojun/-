@@ -1,0 +1,53 @@
+完美解决axios跨域请求出错的问题
+
+可以访问下方链接资源：
+  https://www.zhangshengrong.com/p/O3aAk99KX4/
+
+错误信息：
+
+Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. Origin 'http://localhost:9000' is therefore not allowed access. The response had HTTP status code 403
+
+随着前端框架的发展，如今前后端数据分离已经成了趋势，也就是说，前端只需要用ajax请求后端的数据合成页面，后端仅仅提供数据接口，给数据就行，好处就是前端程序员再也不用在自己的本地搭建Web服务器，前端也不需要懂后端语法，后端也不需要懂前端语法，那么简化了开发配置，也降低了合作难度。
+
+常规的GET，POST，PUT，DELETE请求是简单请求（相对于OPTIONS请求），但是OPTIONS有点儿特别，它要先发送请求问问服务器，你要不要我请求呀，要我就要发送数据过来咯（这完全是根据自己的理解写的，如果有误，敬请谅解，请参考阮一峰大神原文。）
+
+在Vue的项目里，Http服务采用Axios，而它正是采用OPTIONS请求。
+
+如果仅仅在header里面加入： 'Access-Control-Allow-Origin'：*，是并不能解决问题的，错误就是如文章开头所示。
+
+这儿就需要后台对OPTIONS请求额外处理。
+
+本文以Spring MVC为例：
+
+添加一个拦截器类：
+
+public class ProcessInterceptor implements HandlerInterceptor {
+
+  @Override
+  public boolean preHandle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object o) throws Exception {
+    httpServletResponse.setHeader("Access-Control-Allow-Origin", "*");
+    httpServletResponse.setHeader("Access-Control-Allow-Headers", "Content-Type,Content-Length, Authorization, Accept,X-Requested-With");
+    httpServletResponse.setHeader("Access-Control-Allow-Methods","PUT,POST,GET,DELETE,OPTIONS");
+    httpServletResponse.setHeader("X-Powered-By","Jetty");
+
+    String method= httpServletRequest.getMethod();
+    if (method.equals("OPTIONS")){
+      httpServletResponse.setStatus(200);
+      return false;
+    }
+    System.out.println(method);
+    return true;
+  }
+  @Override
+  public void postHandle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object o, ModelAndView modelAndView) throws Exception {
+  }
+  @Override
+  public void afterCompletion(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object o, Exception e) throws Exception {
+  }
+}
+在spring-mvx.xml配置Spring 拦截器：
+
+<mvc:interceptors>
+    <bean class="cn.tfzc.ssm.common.innterceptor.ProcessInterceptor"></bean>
+  </mvc:interceptors> 
+至此，问题已经解决：
